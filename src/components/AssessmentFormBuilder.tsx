@@ -431,29 +431,6 @@ const AssessmentFormBuilder: React.FC = () => {
                       }}
                       className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
-                    <label className="flex items-center space-x-1">
-                      <input
-                        type="checkbox"
-                        checked={option.isCorrect}
-                        onChange={(e) => {
-                          const updatedSubQuestions = subQuestions.map(sq =>
-                            sq.id === subQuestion.id
-                              ? {
-                                  ...sq,
-                                  options: sq.options.map(opt =>
-                                    opt.id === option.id ? { ...opt, isCorrect: e.target.checked } : opt
-                                  )
-                                }
-                              : sq
-                          );
-                          updateOption(categoryId, parentQuestionId, optionId, {
-                            subQuestions: updatedSubQuestions
-                          });
-                        }}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="text-xs text-gray-600">Correct</span>
-                    </label>
                   </div>
                 ))}
               </div>
@@ -528,9 +505,6 @@ const AssessmentFormBuilder: React.FC = () => {
                             disabled
                           />
                           <span className="flex-1">{option.text || `Option ${optionIndex + 1}`}</span>
-                          {option.isCorrect && (
-                            <span className="text-green-600 text-sm font-medium">✓ Correct</span>
-                          )}
                         </label>
                         
                         {option.hasSubQuestions && option.subQuestions.length > 0 && (
@@ -841,15 +815,6 @@ const AssessmentFormBuilder: React.FC = () => {
                                     getErrorsForField('optionText', category.id, question.id, option.id).length > 0 ? 'border-red-300' : 'border-gray-300'
                                   }`}
                                 />
-                                <label className="flex items-center space-x-2">
-                                  <input
-                                    type="checkbox"
-                                    checked={option.isCorrect}
-                                    onChange={(e) => updateOption(category.id, question.id, option.id, { isCorrect: e.target.checked })}
-                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                  />
-                                  <span className="text-sm text-gray-600">Correct</span>
-                                </label>
                                 <button
                                   onClick={() => addSubQuestion(category.id, question.id, option.id)}
                                   className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"

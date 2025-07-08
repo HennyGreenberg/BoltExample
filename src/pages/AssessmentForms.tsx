@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Edit, Trash2, Copy, FileText, Settings } from 'lucide-react';
+import { Plus, Edit, Trash2, Copy, FileText, Settings, MoreVertical, Archive, Eye } from 'lucide-react';
 
 const AssessmentForms: React.FC = () => {
   const [activeTab, setActiveTab] = useState('forms');
-
-  const assessmentForms = [
+  const [showActionsFor, setShowActionsFor] = useState<string | null>(null);
+  const [forms, setForms] = useState([
     {
       id: '1',
       title: 'Reading Comprehension Assessment',
@@ -50,7 +50,8 @@ const AssessmentForms: React.FC = () => {
       status: 'draft',
       usageCount: 0
     }
-  ];
+  ]);
+
 
   const formCategories = [
     { name: 'Academic', count: 8, color: 'bg-blue-100 text-blue-700' },
@@ -78,6 +79,64 @@ const AssessmentForms: React.FC = () => {
       case 'Social': return 'text-pink-600 bg-pink-100';
       default: return 'text-gray-600 bg-gray-100';
     }
+  };
+
+  const handleEditForm = (formId: string) => {
+    console.log('Edit form:', formId);
+    // Navigate to edit form page
+    // In a real app: navigate(`/assessment-forms/edit/${formId}`)
+    alert(`Edit form functionality would open form ${formId} for editing`);
+    setShowActionsFor(null);
+  };
+
+  const handleCopyForm = (formId: string) => {
+    const formToCopy = forms.find(f => f.id === formId);
+    if (formToCopy) {
+      const newForm = {
+        ...formToCopy,
+        id: Date.now().toString(),
+        title: `${formToCopy.title} (Copy)`,
+        createdDate: new Date().toISOString().split('T')[0],
+        lastModified: new Date().toISOString().split('T')[0],
+        status: 'draft' as const,
+        usageCount: 0
+      };
+      setForms(prev => [...prev, newForm]);
+      console.log('Copied form:', newForm);
+    }
+    setShowActionsFor(null);
+  };
+
+  const handleViewForm = (formId: string) => {
+    console.log('View form:', formId);
+    // Navigate to view/preview form page
+    alert(`View form functionality would show preview of form ${formId}`);
+    setShowActionsFor(null);
+  };
+
+  const handleArchiveForm = (formId: string) => {
+    setForms(prev => prev.map(form => 
+      form.id === formId 
+        ? { ...form, status: form.status === 'archived' ? 'active' : 'archived' as const }
+        : form
+    ));
+    console.log('Toggled archive status for form:', formId);
+    setShowActionsFor(null);
+  };
+
+  const handleDeleteForm = (formId: string) => {
+    if (window.confirm('Are you sure you want to delete this form? This action cannot be undone.')) {
+      setForms(prev => prev.filter(form => form.id !== formId));
+      console.log('Deleted form:', formId);
+    }
+    setShowActionsFor(null);
+  };
+
+  const handleFormSettings = (formId: string) => {
+    console.log('Form settings:', formId);
+    // Open settings modal or navigate to settings page
+    alert(`Settings functionality would open configuration options for form ${formId}`);
+    setShowActionsFor(null);
   };
 
   return (
@@ -123,7 +182,7 @@ const AssessmentForms: React.FC = () => {
         <div className="p-6">
           {activeTab === 'forms' && (
             <div className="space-y-4">
-              {assessmentForms.map((form) => (
+              {forms.map((form) => (
                 <div key={form.id} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -154,19 +213,66 @@ const AssessmentForms: React.FC = () => {
                       </div>
                     </div>
                     
-                    <div className="flex items-center space-x-2">
-                      <button className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                    <div className="flex items-center space-x-1">
+                      <button 
+                        onClick={() => handleViewForm(form.id)}
+                        className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="View Form"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
+                      <button 
+                        onClick={() => handleEditForm(form.id)}
+                        className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="Edit Form"
+                      >
                         <Edit className="h-4 w-4" />
                       </button>
-                      <button className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors">
+                      <button 
+                        onClick={() => handleCopyForm(form.id)}
+                        className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                        title="Copy Form"
+                      >
                         <Copy className="h-4 w-4" />
                       </button>
-                      <button className="p-2 text-gray-600 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
-                        <Settings className="h-4 w-4" />
-                      </button>
-                      <button className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      
+                      {/* More Actions Dropdown */}
+                      <div className="relative">
+                        <button 
+                          onClick={() => setShowActionsFor(showActionsFor === form.id ? null : form.id)}
+                          className="p-2 text-gray-600 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+                          title="More Actions"
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </button>
+                        
+                        {showActionsFor === form.id && (
+                          <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-10">
+                            <button
+                              onClick={() => handleFormSettings(form.id)}
+                              className="w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
+                            >
+                              <Settings className="h-4 w-4" />
+                              <span>Form Settings</span>
+                            </button>
+                            <button
+                              onClick={() => handleArchiveForm(form.id)}
+                              className="w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
+                            >
+                              <Archive className="h-4 w-4" />
+                              <span>{form.status === 'archived' ? 'Unarchive' : 'Archive'}</span>
+                            </button>
+                            <hr className="my-2" />
+                            <button
+                              onClick={() => handleDeleteForm(form.id)}
+                              className="w-full px-4 py-2 text-left text-red-600 hover:bg-red-50 flex items-center space-x-2"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              <span>Delete Form</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
