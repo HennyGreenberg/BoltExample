@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Plus, Edit, Trash2, Copy, FileText, Settings } from 'lucide-react';
 
 const AssessmentForms: React.FC = () => {
@@ -83,10 +84,13 @@ const AssessmentForms: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Assessment Forms</h1>
-        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2">
+        <Link
+          to="/assessment-forms/new"
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+        >
           <Plus className="h-4 w-4" />
           <span>Create Form</span>
-        </button>
+        </Link>
       </div>
 
       {/* Tabs */}

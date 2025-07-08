@@ -10,6 +10,7 @@ import Assessments from './pages/Assessments';
 import Reports from './pages/Reports';
 import UserManagement from './pages/UserManagement';
 import AssessmentForms from './pages/AssessmentForms';
+import AssessmentFormBuilderPage from './pages/AssessmentFormBuilder';
 import StudentDetail from './pages/StudentDetail';
 
 function App() {
@@ -29,6 +30,7 @@ function App() {
             <Route path="students/:id" element={<StudentDetail />} />
             <Route path="assessments" element={<Assessments />} />
             <Route path="assessment-forms" element={<AssessmentForms />} />
+            <Route path="assessment-forms/new" element={<AssessmentFormBuilderPage />} />
             <Route path="reports" element={<Reports />} />
             <Route path="users" element={<UserManagement />} />
           </Route>
