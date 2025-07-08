@@ -2,30 +2,6 @@ import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Calendar, FileText, TrendingUp, Edit, Plus } from 'lucide-react';
 import { Line, Bar, Radar } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  RadialLinearScale,
-  Title,
-  Tooltip,
-  Legend,
-} from 'chart.js';
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  RadialLinearScale,
-  Title,
-  Tooltip,
-  Legend
-);
 
 const StudentDetail: React.FC = () => {
   const { id } = useParams();
