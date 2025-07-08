@@ -32,6 +32,7 @@ services:
       - USER_SERVICE_URL=http://user-service:8002
       - STUDENT_SERVICE_URL=http://student-service:8003
       - REPORT_SERVICE_URL=http://report-service:8004
+      - ASSESSMENT_FORM_SERVICE_URL=http://assessment-form-service:8005
     depends_on:
       - auth-service
       - user-service

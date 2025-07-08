@@ -1,4 +1,7 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { assessmentFormService, type AssessmentForm as IAssessmentForm } from '../services/assessmentFormService';
 import { 
   Plus, 
   Trash2, 
@@ -18,31 +21,13 @@ import {
   ArrowLeft
 } from 'lucide-react';
 
-interface AnswerOption {
-  id: string;
-  text: string;
-  isCorrect: boolean;
-  hasSubQuestions: boolean;
-  subQuestions: Question[];
-}
-
-interface Question {
-  id: string;
-  text: string;
-  type: 'multiple_choice';
-  options: AnswerOption[];
-}
-
-interface Category {
-  id: string;
-  name: string;
-  description: string;
-  questions: Question[];
-}
+// Import types from service
+import type { AnswerOption, Question, Category } from '../services/assessmentFormService';
 
 interface AssessmentForm {
   title: string;
   description: string;
+  category: 'Academic' | 'Behavioral' | 'Speech' | 'Physical' | 'Social';
   categories: Category[];
 }
 
@@ -55,9 +40,12 @@ interface ValidationError {
 }
 
 const AssessmentFormBuilder: React.FC = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [form, setForm] = useState<AssessmentForm>({
     title: '',
     description: '',
+    category: 'Academic',
     categories: []
   });
 
@@ -65,6 +53,7 @@ const AssessmentFormBuilder: React.FC = () => {
   const [showPreview, setShowPreview] = useState(false);
   const [isDraft, setIsDraft] = useState(false);
   const [showActions, setShowActions] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const generateId = () => Math.random().toString(36).substr(2, 9);
 
@@ -125,8 +114,8 @@ const AssessmentFormBuilder: React.FC = () => {
       text: '',
       type: 'multiple_choice',
       options: [
-        { id: generateId(), text: '', isCorrect: false, hasSubQuestions: false, subQuestions: [] },
-        { id: generateId(), text: '', isCorrect: false, hasSubQuestions: false, subQuestions: [] }
+        { id: generateId(), text: '', hasSubQuestions: false, subQuestions: [] },
+        { id: generateId(), text: '', hasSubQuestions: false, subQuestions: [] }
       ]
     };
 
@@ -165,7 +154,6 @@ const AssessmentFormBuilder: React.FC = () => {
     const newOption: AnswerOption = {
       id: generateId(),
       text: '',
-      isCorrect: false,
       hasSubQuestions: false,
       subQuestions: []
     };
@@ -212,8 +200,8 @@ const AssessmentFormBuilder: React.FC = () => {
       text: '',
       type: 'multiple_choice',
       options: [
-        { id: generateId(), text: '', isCorrect: false, hasSubQuestions: false, subQuestions: [] },
-        { id: generateId(), text: '', isCorrect: false, hasSubQuestions: false, subQuestions: [] }
+        { id: generateId(), text: '', hasSubQuestions: false, subQuestions: [] },
+        { id: generateId(), text: '', hasSubQuestions: false, subQuestions: [] }
       ]
     };
 
@@ -297,22 +285,63 @@ const AssessmentFormBuilder: React.FC = () => {
   };
 
   const handleSaveDraft = () => {
+    if (!user) return;
+    
     setIsDraft(true);
-    // Here you would save to backend
-    console.log('Saving draft:', form);
+    setIsSubmitting(true);
+    
+    const formData: Omit<IAssessmentForm, '_id' | 'usageCount' | 'fields' | 'isActive' | 'createdAt' | 'updatedAt'> = {
+      ...form,
+      createdBy: user.id,
+      status: 'draft'
+    };
+    
+    assessmentFormService.createForm(formData)
+      .then((savedForm) => {
+        console.log('Draft saved:', savedForm);
+        // Optionally show success message
+        alert('Draft saved successfully!');
+      })
+      .catch((error) => {
+        console.error('Error saving draft:', error);
+        alert('Error saving draft. Please try again.');
+      })
+      .finally(() => {
+        setIsSubmitting(false);
+      });
   };
 
   const handleSubmit = () => {
+    if (!user) return;
+    
     const validationErrors = validateForm();
     if (validationErrors.length > 0) {
       setErrors(validationErrors);
       return;
     }
 
+    setIsSubmitting(true);
     setIsDraft(false);
-    // Here you would submit to backend
-    console.log('Submitting form:', form);
-    // After successful submission, you might redirect back to the forms list
+    
+    const formData: Omit<IAssessmentForm, '_id' | 'usageCount' | 'fields' | 'isActive' | 'createdAt' | 'updatedAt'> = {
+      ...form,
+      createdBy: user.id,
+      status: 'active'
+    };
+    
+    assessmentFormService.createForm(formData)
+      .then((savedForm) => {
+        console.log('Form submitted:', savedForm);
+        alert('Assessment form created successfully!');
+        navigate('/assessment-forms');
+      })
+      .catch((error) => {
+        console.error('Error submitting form:', error);
+        alert('Error creating form. Please try again.');
+      })
+      .finally(() => {
+        setIsSubmitting(false);
+      });
   };
 
   const handleEdit = () => {
@@ -529,7 +558,7 @@ const AssessmentFormBuilder: React.FC = () => {
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <button
-            onClick={() => window.history.back()}
+            onClick={() => navigate('/assessment-forms')}
             className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -584,17 +613,19 @@ const AssessmentFormBuilder: React.FC = () => {
           </button>
           <button
             onClick={handleSaveDraft}
+            disabled={isSubmitting}
             className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center space-x-2"
           >
             <Save className="h-4 w-4" />
-            <span>Save Draft</span>
+            <span>{isSubmitting ? 'Saving...' : 'Save Draft'}</span>
           </button>
           <button
             onClick={handleSubmit}
+            disabled={isSubmitting}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
           >
             <Send className="h-4 w-4" />
-            <span>Submit Form</span>
+            <span>{isSubmitting ? 'Submitting...' : 'Submit Form'}</span>
           </button>
         </div>
       </div>
@@ -674,6 +705,23 @@ const AssessmentFormBuilder: React.FC = () => {
             {getErrorsForField('description').map((error, index) => (
               <p key={index} className="mt-1 text-sm text-red-600">{error.message}</p>
             ))}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Primary Category *
+            </label>
+            <select
+              value={form.category}
+              onChange={(e) => updateForm({ category: e.target.value as any })}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="Academic">Academic</option>
+              <option value="Behavioral">Behavioral</option>
+              <option value="Speech">Speech</option>
+              <option value="Physical">Physical</option>
+              <option value="Social">Social</option>
+            </select>
           </div>
         </div>
       </div>

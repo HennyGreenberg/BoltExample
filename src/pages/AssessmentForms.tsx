@@ -1,65 +1,47 @@
 import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { assessmentFormService, type AssessmentForm, type CategoryStats } from '../services/assessmentFormService';
 import { Plus, Edit, Trash2, Copy, FileText, Settings, MoreVertical, Archive, Eye } from 'lucide-react';
 
 const AssessmentForms: React.FC = () => {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('forms');
   const [showActionsFor, setShowActionsFor] = useState<string | null>(null);
-  const [forms, setForms] = useState([
-    {
-      id: '1',
-      title: 'Reading Comprehension Assessment',
-      description: 'Evaluate reading skills and comprehension levels',
-      category: 'Academic',
-      fields: 12,
-      createdDate: '2024-01-10',
-      lastModified: '2024-01-15',
-      status: 'active',
-      usageCount: 45
-    },
-    {
-      id: '2',
-      title: 'Behavioral Observation Form',
-      description: 'Track behavioral patterns and interventions',
-      category: 'Behavioral',
-      fields: 8,
-      createdDate: '2024-01-05',
-      lastModified: '2024-01-12',
-      status: 'active',
-      usageCount: 32
-    },
-    {
-      id: '3',
-      title: 'Speech Development Evaluation',
-      description: 'Assess speech and language development',
-      category: 'Speech',
-      fields: 15,
-      createdDate: '2023-12-20',
-      lastModified: '2024-01-08',
-      status: 'active',
-      usageCount: 28
-    },
-    {
-      id: '4',
-      title: 'Motor Skills Assessment',
-      description: 'Evaluate fine and gross motor skill development',
-      category: 'Physical',
-      fields: 10,
-      createdDate: '2023-12-15',
-      lastModified: '2024-01-01',
-      status: 'draft',
-      usageCount: 0
+  const [forms, setForms] = useState<AssessmentForm[]>([]);
+  const [formCategories, setFormCategories] = useState<CategoryStats[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Load forms and categories on component mount
+  useEffect(() => {
+    loadForms();
+    loadCategoryStats();
+  }, []);
+
+  const loadForms = async () => {
+    try {
+      setLoading(true);
+      const formsData = await assessmentFormService.getAllForms();
+      setForms(formsData);
+      setError(null);
+    } catch (err) {
+      console.error('Error loading forms:', err);
+      setError('Failed to load assessment forms');
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
 
-
-  const formCategories = [
-    { name: 'Academic', count: 8, color: 'bg-blue-100 text-blue-700' },
-    { name: 'Behavioral', count: 5, color: 'bg-green-100 text-green-700' },
-    { name: 'Speech', count: 6, color: 'bg-yellow-100 text-yellow-700' },
-    { name: 'Physical', count: 4, color: 'bg-purple-100 text-purple-700' },
-    { name: 'Social', count: 3, color: 'bg-pink-100 text-pink-700' }
-  ];
+  const loadCategoryStats = async () => {
+    try {
+      const stats = await assessmentFormService.getCategoryStats();
+      setFormCategories(stats);
+    } catch (err) {
+      console.error('Error loading category stats:', err);
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -84,50 +66,75 @@ const AssessmentForms: React.FC = () => {
   const handleEditForm = (formId: string) => {
     console.log('Edit form:', formId);
     // Navigate to edit form page
-    // In a real app: navigate(`/assessment-forms/edit/${formId}`)
-    alert(`Edit form functionality would open form ${formId} for editing`);
+    alert(`Edit form functionality would navigate to /assessment-forms/edit/${formId}`);
     setShowActionsFor(null);
   };
 
   const handleCopyForm = (formId: string) => {
-    const formToCopy = forms.find(f => f.id === formId);
-    if (formToCopy) {
-      const newForm = {
-        ...formToCopy,
-        id: Date.now().toString(),
-        title: `${formToCopy.title} (Copy)`,
-        createdDate: new Date().toISOString().split('T')[0],
-        lastModified: new Date().toISOString().split('T')[0],
-        status: 'draft' as const,
-        usageCount: 0
-      };
-      setForms(prev => [...prev, newForm]);
-      console.log('Copied form:', newForm);
-    }
+    if (!user) return;
+    
+    assessmentFormService.duplicateForm(formId, user.id)
+      .then((duplicatedForm) => {
+        setForms(prev => [duplicatedForm, ...prev]);
+        console.log('Copied form:', duplicatedForm);
+        alert('Form duplicated successfully!');
+      })
+      .catch((error) => {
+        console.error('Error copying form:', error);
+        alert('Error copying form. Please try again.');
+      });
     setShowActionsFor(null);
   };
 
   const handleViewForm = (formId: string) => {
+    // Increment usage count when viewing
+    assessmentFormService.incrementUsage(formId)
+      .then(() => {
+        // Update local state
+        setForms(prev => prev.map(form => 
+          form._id === formId 
+            ? { ...form, usageCount: form.usageCount + 1 }
+            : form
+        ));
+      })
+      .catch((error) => {
+        console.error('Error updating usage count:', error);
+      });
+    
     console.log('View form:', formId);
-    // Navigate to view/preview form page
     alert(`View form functionality would show preview of form ${formId}`);
     setShowActionsFor(null);
   };
 
   const handleArchiveForm = (formId: string) => {
-    setForms(prev => prev.map(form => 
-      form.id === formId 
-        ? { ...form, status: form.status === 'archived' ? 'active' : 'archived' as const }
-        : form
-    ));
-    console.log('Toggled archive status for form:', formId);
+    assessmentFormService.toggleArchiveForm(formId)
+      .then((updatedForm) => {
+        setForms(prev => prev.map(form => 
+          form._id === formId ? updatedForm : form
+        ));
+        console.log('Toggled archive status for form:', formId);
+      })
+      .catch((error) => {
+        console.error('Error archiving form:', error);
+        alert('Error updating form status. Please try again.');
+      });
     setShowActionsFor(null);
   };
 
   const handleDeleteForm = (formId: string) => {
     if (window.confirm('Are you sure you want to delete this form? This action cannot be undone.')) {
-      setForms(prev => prev.filter(form => form.id !== formId));
-      console.log('Deleted form:', formId);
+      assessmentFormService.deleteForm(formId)
+        .then(() => {
+          setForms(prev => prev.filter(form => form._id !== formId));
+          console.log('Deleted form:', formId);
+          alert('Form deleted successfully!');
+          // Reload category stats
+          loadCategoryStats();
+        })
+        .catch((error) => {
+          console.error('Error deleting form:', error);
+          alert('Error deleting form. Please try again.');
+        });
     }
     setShowActionsFor(null);
   };
@@ -181,9 +188,43 @@ const AssessmentForms: React.FC = () => {
 
         <div className="p-6">
           {activeTab === 'forms' && (
+            <>
+              {loading && (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                </div>
+              )}
+              
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                  <p className="text-red-600">{error}</p>
+                  <button 
+                    onClick={loadForms}
+                    className="mt-2 text-red-600 hover:text-red-700 font-medium"
+                  >
+                    Try Again
+                  </button>
+                </div>
+              )}
+              
+              {!loading && !error && forms.length === 0 && (
+                <div className="text-center py-8">
+                  <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No assessment forms found</h3>
+                  <p className="text-gray-600 mb-4">Get started by creating your first assessment form.</p>
+                  <Link
+                    to="/assessment-forms/new"
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center space-x-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span>Create Form</span>
+                  </Link>
+                </div>
+              )}
+              
             <div className="space-y-4">
               {forms.map((form) => (
-                <div key={form.id} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+                <div key={form._id} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-3">
@@ -208,28 +249,28 @@ const AssessmentForms: React.FC = () => {
                       </div>
                       
                       <div className="mt-2 text-sm text-gray-500">
-                        Created: {new Date(form.createdDate).toLocaleDateString()} • 
-                        Last modified: {new Date(form.lastModified).toLocaleDateString()}
+                        Created: {new Date(form.createdAt).toLocaleDateString()} • 
+                        Last modified: {new Date(form.updatedAt).toLocaleDateString()}
                       </div>
                     </div>
                     
                     <div className="flex items-center space-x-1">
                       <button 
-                        onClick={() => handleViewForm(form.id)}
+                        onClick={() => handleViewForm(form._id!)}
                         className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                         title="View Form"
                       >
                         <Eye className="h-4 w-4" />
                       </button>
                       <button 
-                        onClick={() => handleEditForm(form.id)}
+                        onClick={() => handleEditForm(form._id!)}
                         className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                         title="Edit Form"
                       >
                         <Edit className="h-4 w-4" />
                       </button>
                       <button 
-                        onClick={() => handleCopyForm(form.id)}
+                        onClick={() => handleCopyForm(form._id!)}
                         className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                         title="Copy Form"
                       >
@@ -239,24 +280,24 @@ const AssessmentForms: React.FC = () => {
                       {/* More Actions Dropdown */}
                       <div className="relative">
                         <button 
-                          onClick={() => setShowActionsFor(showActionsFor === form.id ? null : form.id)}
+                          onClick={() => setShowActionsFor(showActionsFor === form._id ? null : form._id!)}
                           className="p-2 text-gray-600 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
                           title="More Actions"
                         >
                           <MoreVertical className="h-4 w-4" />
                         </button>
                         
-                        {showActionsFor === form.id && (
+                        {showActionsFor === form._id && (
                           <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-10">
                             <button
-                              onClick={() => handleFormSettings(form.id)}
+                              onClick={() => handleFormSettings(form._id!)}
                               className="w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
                             >
                               <Settings className="h-4 w-4" />
                               <span>Form Settings</span>
                             </button>
                             <button
-                              onClick={() => handleArchiveForm(form.id)}
+                              onClick={() => handleArchiveForm(form._id!)}
                               className="w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
                             >
                               <Archive className="h-4 w-4" />
@@ -264,7 +305,7 @@ const AssessmentForms: React.FC = () => {
                             </button>
                             <hr className="my-2" />
                             <button
-                              onClick={() => handleDeleteForm(form.id)}
+                              onClick={() => handleDeleteForm(form._id!)}
                               className="w-full px-4 py-2 text-left text-red-600 hover:bg-red-50 flex items-center space-x-2"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -278,6 +319,7 @@ const AssessmentForms: React.FC = () => {
                 </div>
               ))}
             </div>
+            </>
           )}
 
           {activeTab === 'categories' && (

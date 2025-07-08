@@ -59,6 +59,10 @@ const services = {
   reports: {
     target: process.env.REPORT_SERVICE_URL || 'http://report-service:8004',
     prefix: '/api/reports'
+  },
+  assessmentForms: {
+    target: process.env.ASSESSMENT_FORM_SERVICE_URL || 'http://assessment-form-service:8005',
+    prefix: '/api/assessment-forms'
   }
 };
 

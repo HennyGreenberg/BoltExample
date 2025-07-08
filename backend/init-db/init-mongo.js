@@ -59,4 +59,17 @@ db.reports.createIndex({ studentId: 1 });
 db.reports.createIndex({ reportType: 1 });
 db.reports.createIndex({ dateGenerated: 1 });
 
+// Switch to the assessment form database
+db = db.getSiblingDB('assessment_form_db');
+
+// Create assessment forms collection with indexes
+db.createCollection('assessmentforms');
+db.assessmentforms.createIndex({ title: 1 });
+db.assessmentforms.createIndex({ category: 1 });
+db.assessmentforms.createIndex({ status: 1 });
+db.assessmentforms.createIndex({ createdBy: 1 });
+db.assessmentforms.createIndex({ isActive: 1 });
+db.assessmentforms.createIndex({ createdAt: 1 });
+db.assessmentforms.createIndex({ updatedAt: 1 });
+
 print('Database initialization completed successfully!');
