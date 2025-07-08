@@ -11,7 +11,11 @@ import {
   AlertCircle,
   FileText,
   FolderPlus,
-  HelpCircle
+  HelpCircle,
+  Edit,
+  Copy,
+  Settings,
+  ArrowLeft
 } from 'lucide-react';
 
 interface AnswerOption {
@@ -60,6 +64,7 @@ const AssessmentFormBuilder: React.FC = () => {
   const [errors, setErrors] = useState<ValidationError[]>([]);
   const [showPreview, setShowPreview] = useState(false);
   const [isDraft, setIsDraft] = useState(false);
+  const [showActions, setShowActions] = useState(false);
 
   const generateId = () => Math.random().toString(36).substr(2, 9);
 
@@ -307,6 +312,56 @@ const AssessmentFormBuilder: React.FC = () => {
     setIsDraft(false);
     // Here you would submit to backend
     console.log('Submitting form:', form);
+    // After successful submission, you might redirect back to the forms list
+  };
+
+  const handleEdit = () => {
+    // Edit functionality - could open in edit mode or navigate to edit page
+    console.log('Edit form:', form);
+  };
+
+  const handleCopy = () => {
+    // Copy/duplicate form functionality
+    const copiedForm = {
+      ...form,
+      title: `${form.title} (Copy)`,
+      categories: form.categories.map(cat => ({
+        ...cat,
+        id: generateId(),
+        questions: cat.questions.map(q => ({
+          ...q,
+          id: generateId(),
+          options: q.options.map(opt => ({
+            ...opt,
+            id: generateId(),
+            subQuestions: opt.subQuestions.map(sq => ({
+              ...sq,
+              id: generateId(),
+              options: sq.options.map(sqOpt => ({
+                ...sqOpt,
+                id: generateId()
+              }))
+            }))
+          }))
+        }))
+      }))
+    };
+    setForm(copiedForm);
+    console.log('Copied form:', copiedForm);
+  };
+
+  const handleSettings = () => {
+    // Settings functionality - could open a settings modal
+    setShowActions(!showActions);
+    console.log('Form settings:', form);
+  };
+
+  const handleDelete = () => {
+    // Delete functionality - would typically show confirmation dialog
+    if (window.confirm('Are you sure you want to delete this form? This action cannot be undone.')) {
+      console.log('Delete form:', form);
+      // Here you would delete from backend and redirect
+    }
   };
 
   const getErrorsForField = (field: string, categoryId?: string, questionId?: string, optionId?: string) => {
@@ -413,13 +468,30 @@ const AssessmentFormBuilder: React.FC = () => {
     return (
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">Form Preview</h1>
-          <button
-            onClick={() => setShowPreview(false)}
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            Back to Editor
-          </button>
+          <div className="flex items-center space-x-4">
+            <h1 className="text-2xl font-bold text-gray-900">Form Preview</h1>
+            {form.title && (
+              <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                {form.title}
+              </span>
+            )}
+          </div>
+          <div className="flex space-x-3">
+            <button
+              onClick={handleCopy}
+              className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+              title="Duplicate Form"
+            >
+              <Copy className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setShowPreview(false)}
+              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center space-x-2"
+            >
+              <Edit className="h-4 w-4" />
+              <span>Back to Editor</span>
+            </button>
+          </div>
         </div>
 
         <div className="bg-white rounded-lg shadow-sm p-8">
@@ -481,8 +553,54 @@ const AssessmentFormBuilder: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Assessment Form Builder</h1>
+        <div className="flex items-center space-x-4">
+          <button
+            onClick={() => window.history.back()}
+            className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <h1 className="text-2xl font-bold text-gray-900">Assessment Form Builder</h1>
+        </div>
         <div className="flex space-x-3">
+          {/* Form Actions */}
+          <div className="relative">
+            <button
+              onClick={handleSettings}
+              className="p-2 text-gray-600 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+              title="Form Settings"
+            >
+              <Settings className="h-4 w-4" />
+            </button>
+            
+            {showActions && (
+              <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-10">
+                <button
+                  onClick={handleEdit}
+                  className="w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
+                >
+                  <Edit className="h-4 w-4" />
+                  <span>Edit Form</span>
+                </button>
+                <button
+                  onClick={handleCopy}
+                  className="w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
+                >
+                  <Copy className="h-4 w-4" />
+                  <span>Duplicate Form</span>
+                </button>
+                <hr className="my-2" />
+                <button
+                  onClick={handleDelete}
+                  className="w-full px-4 py-2 text-left text-red-600 hover:bg-red-50 flex items-center space-x-2"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  <span>Delete Form</span>
+                </button>
+              </div>
+            )}
+          </div>
+          
           <button
             onClick={() => setShowPreview(true)}
             className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center space-x-2"
@@ -524,6 +642,29 @@ const AssessmentFormBuilder: React.FC = () => {
 
       {/* Form Header */}
       <div className="bg-white rounded-lg shadow-sm p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+              <FileText className="h-5 w-5 text-blue-600" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Form Details</h2>
+              <p className="text-sm text-gray-600">Configure your assessment form</p>
+            </div>
+          </div>
+          
+          {form.title && (
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-gray-500">Status:</span>
+              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                isDraft ? 'text-yellow-600 bg-yellow-100' : 'text-green-600 bg-green-100'
+              }`}>
+                {isDraft ? 'Draft' : 'Active'}
+              </span>
+            </div>
+          )}
+        </div>
+        
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
