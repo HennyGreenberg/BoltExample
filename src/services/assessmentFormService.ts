@@ -43,6 +43,8 @@ export interface CategoryStats {
   color: string;
 }
 
+// Check if we're in development mode and should use mock service
+const USE_MOCK_SERVICE = import.meta.env.DEV && !import.meta.env.VITE_USE_REAL_API;
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 class AssessmentFormService {
@@ -148,4 +150,68 @@ class AssessmentFormService {
   }
 }
 
-export const assessmentFormService = new AssessmentFormService();
+// Export the appropriate service based on environment
+// Create a service instance that switches between mock and real service
+class ServiceProxy {
+  private realService = new AssessmentFormService();
+  private mockService: any = null;
+  
+  private async getMockService() {
+    if (!this.mockService) {
+      const { mockAssessmentFormService } = await import('./mockAssessmentFormService');
+      this.mockService = mockAssessmentFormService;
+    }
+    return this.mockService;
+  }
+  
+  private async getService() {
+    return USE_MOCK_SERVICE ? await this.getMockService() : this.realService;
+  }
+  
+  async getAllForms(filters?: { status?: string; category?: string; search?: string; }): Promise<AssessmentForm[]> {
+    const service = await this.getService();
+    return service.getAllForms(filters);
+  }
+  
+  async getFormById(id: string): Promise<AssessmentForm> {
+    const service = await this.getService();
+    return service.getFormById(id);
+  }
+  
+  async createForm(formData: Omit<AssessmentForm, '_id' | 'usageCount' | 'fields' | 'isActive' | 'createdAt' | 'updatedAt'>): Promise<AssessmentForm> {
+    const service = await this.getService();
+    return service.createForm(formData);
+  }
+  
+  async updateForm(id: string, formData: Partial<AssessmentForm>): Promise<AssessmentForm> {
+    const service = await this.getService();
+    return service.updateForm(id, formData);
+  }
+  
+  async deleteForm(id: string): Promise<{ message: string }> {
+    const service = await this.getService();
+    return service.deleteForm(id);
+  }
+  
+  async toggleArchiveForm(id: string): Promise<AssessmentForm> {
+    const service = await this.getService();
+    return service.toggleArchiveForm(id);
+  }
+  
+  async duplicateForm(id: string, createdBy: string): Promise<AssessmentForm> {
+    const service = await this.getService();
+    return service.duplicateForm(id, createdBy);
+  }
+  
+  async incrementUsage(id: string): Promise<{ usageCount: number }> {
+    const service = await this.getService();
+    return service.incrementUsage(id);
+  }
+  
+  async getCategoryStats(): Promise<CategoryStats[]> {
+    const service = await this.getService();
+    return service.getCategoryStats();
+  }
+}
+
+export const assessmentFormService = new ServiceProxy();
