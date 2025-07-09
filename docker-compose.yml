@@ -38,6 +38,7 @@ services:
       - user-service
       - student-service
       - report-service
+      - assessment-form-service
     networks:
       - app-network
 
@@ -98,6 +99,21 @@ services:
     environment:
       - NODE_ENV=development
       - MONGODB_URI=mongodb://mongodb:27017/report_db
+    depends_on:
+      - mongodb
+    networks:
+      - app-network
+
+  # Assessment Form Service
+  assessment-form-service:
+    build:
+      context: ./backend/assessment-form-service
+      dockerfile: Dockerfile
+    ports:
+      - "8005:8005"
+    environment:
+      - NODE_ENV=development
+      - MONGODB_URI=mongodb://mongodb:27017/assessment_form_db
     depends_on:
       - mongodb
     networks:
