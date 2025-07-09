@@ -29,6 +29,7 @@ services:
     environment:
       - NODE_ENV=development
       - AUTH_SERVICE_URL=http://auth-service:8001
+      - FRONTEND_URL=http://localhost:5173
       - USER_SERVICE_URL=http://user-service:8002
       - STUDENT_SERVICE_URL=http://student-service:8003
       - REPORT_SERVICE_URL=http://report-service:8004
