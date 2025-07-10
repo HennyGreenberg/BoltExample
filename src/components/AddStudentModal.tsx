@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { X, User, Calendar, Phone, Mail, Heart, AlertTriangle, Target, Settings } from 'lucide-react';
 import { studentService, type CreateStudentData } from '../services/studentService';
+import type { Student } from '../services/studentService';
 
 interface AddStudentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onStudentAdded: (student: any) => void;
+  onStudentAdded: (student: Student) => void;
 }
 
 const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onStudentAdded }) => {
@@ -156,11 +157,13 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSt
         if (!formData.age || formData.age < 3 || formData.age > 18) newErrors.age = 'Age must be between 3 and 18';
         if (!formData.dateOfBirth) newErrors.dateOfBirth = 'Date of birth is required';
         if (formData.primaryNeeds.length === 0) newErrors.primaryNeeds = 'At least one primary need is required';
+        if (!formData.enrollmentDate) newErrors.enrollmentDate = 'Enrollment date is required';
         break;
       case 2:
         if (!formData.parentContact.name.trim()) newErrors.parentName = 'Parent/Guardian name is required';
         if (!formData.parentContact.phone.trim()) newErrors.parentPhone = 'Parent/Guardian phone is required';
         if (!formData.parentContact.email.trim()) newErrors.parentEmail = 'Parent/Guardian email is required';
+        if (!formData.parentContact.email.includes('@')) newErrors.parentEmail = 'Please enter a valid email address';
         if (!formData.emergencyContact.name.trim()) newErrors.emergencyName = 'Emergency contact name is required';
         if (!formData.emergencyContact.phone.trim()) newErrors.emergencyPhone = 'Emergency contact phone is required';
         break;
@@ -221,6 +224,7 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSt
 
   const resetForm = () => {
     setCurrentStep(1);
+    setErrors({});
     setFormData({
       name: '',
       grade: '',
@@ -251,8 +255,14 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSt
       iepGoals: [''],
       accommodations: ['']
     });
-    setErrors({});
   };
+
+  // Reset form when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      resetForm();
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -265,8 +275,8 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSt
   ];
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl my-8 overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-2xl font-bold text-gray-900">Add New Student</h2>
@@ -279,15 +289,15 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSt
         </div>
 
         {/* Progress Steps */}
-        <div className="px-6 py-4 border-b border-gray-200">
-          <div className="flex items-center justify-between">
+        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+          <div className="flex items-center justify-between overflow-x-auto">
             {steps.map((step, index) => {
               const StepIcon = step.icon;
               const isActive = currentStep === step.number;
               const isCompleted = currentStep > step.number;
               
               return (
-                <div key={step.number} className="flex items-center">
+                <div key={step.number} className="flex items-center flex-shrink-0">
                   <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
                     isCompleted ? 'bg-green-500 border-green-500 text-white' :
                     isActive ? 'bg-blue-500 border-blue-500 text-white' :
@@ -319,7 +329,7 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSt
         </div>
 
         {/* Form Content */}
-        <div className="p-6 overflow-y-auto max-h-[60vh]">
+        <div className="p-6 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 280px)' }}>
           {/* Step 1: Basic Information */}
           {currentStep === 1 && (
             <div className="space-y-6">
@@ -400,8 +410,11 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSt
                     type="date"
                     value={formData.enrollmentDate}
                     onChange={(e) => updateFormData({ enrollmentDate: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                      errors.enrollmentDate ? 'border-red-300' : 'border-gray-300'
+                    }`}
                   />
+                  {errors.enrollmentDate && <p className="mt-1 text-sm text-red-600">{errors.enrollmentDate}</p>}
                 </div>
               </div>
 
@@ -871,7 +884,7 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSt
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between p-6 border-t border-gray-200">
+        <div className="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50">
           <button
             onClick={prevStep}
             disabled={currentStep === 1}
@@ -879,6 +892,10 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSt
           >
             Previous
           </button>
+          
+          <div className="text-sm text-gray-600">
+            Step {currentStep} of 5
+          </div>
           
           <div className="flex space-x-3">
             {currentStep < 5 ? (

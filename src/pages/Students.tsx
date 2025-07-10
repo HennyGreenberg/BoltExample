@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { studentService, type Student } from '../services/studentService';
 import AddStudentModal from '../components/AddStudentModal';
-import { Search, Filter, Plus, Eye, Edit, Calendar } from 'lucide-react';
+import { Search, Filter, Plus, Eye, Edit, Calendar, User } from 'lucide-react';
 
 const Students: React.FC = () => {
   const { user } = useAuth();
