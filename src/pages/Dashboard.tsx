@@ -1,16 +1,40 @@
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { studentService } from '../services/studentService';
 import { Users, FileText, BarChart3, TrendingUp, Calendar, AlertCircle } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
+  const [stats, setStats] = React.useState([
+    { name: 'Total Students', value: '0', icon: Users, color: 'bg-blue-500' },
+    { name: 'Assessments Today', value: '0', icon: FileText, color: 'bg-green-500' },
+    { name: 'Pending Reviews', value: '0', icon: AlertCircle, color: 'bg-yellow-500' },
+    { name: 'Progress Reports', value: '0', icon: BarChart3, color: 'bg-purple-500' }
+  ]);
 
-  const stats = [
-    { name: 'Total Students', value: '24', icon: Users, color: 'bg-blue-500' },
-    { name: 'Assessments Today', value: '8', icon: FileText, color: 'bg-green-500' },
-    { name: 'Pending Reviews', value: '3', icon: AlertCircle, color: 'bg-yellow-500' },
-    { name: 'Progress Reports', value: '15', icon: BarChart3, color: 'bg-purple-500' }
-  ];
+  // Load dashboard stats
+  React.useEffect(() => {
+    loadDashboardStats();
+  }, [user]);
+
+  const loadDashboardStats = async () => {
+    if (!user) return;
+    
+    try {
+      // For teachers and therapists, only show their assigned students
+      const filters = user.role !== 'admin' ? { assignedToUser: user.id } : {};
+      const students = await studentService.getAllStudents(filters);
+      
+      setStats(prev => prev.map(stat => {
+        if (stat.name === 'Total Students') {
+          return { ...stat, value: students.length.toString() };
+        }
+        return stat;
+      }));
+    } catch (error) {
+      console.error('Error loading dashboard stats:', error);
+    }
+  };
 
   const recentActivities = [
     { student: 'Emma Johnson', action: 'Completed Math Assessment', time: '2 hours ago' },
@@ -39,6 +63,21 @@ const Dashboard: React.FC = () => {
           })}</span>
         </div>
       </div>
+
+      {/* Role-specific welcome message */}
+      {user?.role !== 'admin' && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <h3 className="text-blue-800 font-medium mb-1">
+            Welcome, {user?.name}
+          </h3>
+          <p className="text-blue-700 text-sm">
+            {user?.role === 'teacher' 
+              ? 'You can view and manage your assigned students, create assessments, and track progress.'
+              : 'You can view your assigned students, conduct therapy sessions, and update treatment plans.'
+            }
+          </p>
+        </div>
+      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

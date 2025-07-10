@@ -1,28 +1,36 @@
 import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
+import { studentService, type Student } from '../services/studentService';
 import { Calendar, FileText, TrendingUp, Edit, Plus } from 'lucide-react';
 import { Line, Bar, Radar } from 'react-chartjs-2';
 
 const StudentDetail: React.FC = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
+  const [student, setStudent] = useState<Student | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock student data - in real app, this would come from API
-  const student = {
-    id: '1',
-    name: 'Emma Johnson',
-    grade: 'Grade 3',
-    age: 9,
-    primaryNeeds: ['Learning Disability', 'ADHD'],
-    image: 'https://images.pexels.com/photos/3663611/pexels-photo-3663611.jpeg?auto=compress&cs=tinysrgb&w=150',
-    enrollmentDate: '2023-09-01',
-    lastAssessment: '2024-01-15',
-    progressTrend: 'improving',
-    iepGoals: [
-      'Improve reading comprehension by 20%',
-      'Increase attention span during lessons',
-      'Develop better social interaction skills'
-    ]
+  // Load student data on component mount
+  React.useEffect(() => {
+    if (id) {
+      loadStudent(id);
+    }
+  }, [id]);
+
+  const loadStudent = async (studentId: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const studentData = await studentService.getStudentById(studentId);
+      setStudent(studentData);
+    } catch (err) {
+      console.error('Error loading student:', err);
+      setError('Failed to load student details');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const assessmentHistory = [
@@ -100,6 +108,29 @@ const StudentDetail: React.FC = () => {
     },
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (error || !student) {
+    return (
+      <div className="text-center py-8">
+        <h3 className="text-lg font-medium text-gray-900 mb-2">Student not found</h3>
+        <p className="text-gray-600 mb-4">{error || 'The requested student could not be found.'}</p>
+        <button
+          onClick={() => navigate('/students')}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          Back to Students
+        </button>
+      </div>
+    );
+  }
+
   const tabs = [
     { id: 'overview', label: 'Overview' },
     { id: 'assessments', label: 'Assessments' },
@@ -113,7 +144,7 @@ const StudentDetail: React.FC = () => {
       <div className="bg-white rounded-lg shadow-sm p-6">
         <div className="flex items-start space-x-6">
           <img
-            src={student.image}
+            src={student.image || 'https://images.pexels.com/photos/3663611/pexels-photo-3663611.jpeg?auto=compress&cs=tinysrgb&w=150'}
             alt={student.name}
             className="w-24 h-24 rounded-full object-cover"
           />
@@ -179,7 +210,12 @@ const StudentDetail: React.FC = () => {
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Last Assessment</p>
-                    <p className="font-medium">{new Date(student.lastAssessment).toLocaleDateString()}</p>
+                    <p className="font-medium">
+                      {student.lastAssessment 
+                        ? new Date(student.lastAssessment).toLocaleDateString()
+                        : 'No assessments yet'
+                      }
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Progress Trend</p>
@@ -274,7 +310,7 @@ const StudentDetail: React.FC = () => {
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-4">IEP Goals</h3>
               <div className="space-y-4">
-                {student.iepGoals.map((goal, index) => (
+                {student.iepGoals?.map((goal, index) => (
                   <div key={index} className="bg-gray-50 rounded-lg p-4">
                     <div className="flex items-start space-x-3">
                       <div className="flex-shrink-0">
@@ -299,6 +335,9 @@ const StudentDetail: React.FC = () => {
                     </div>
                   </div>
                 ))}
+                {(!student.iepGoals || student.iepGoals.length === 0) && (
+                  <p className="text-gray-600">No IEP goals defined yet.</p>
+                )}
               </div>
             </div>
           )}
