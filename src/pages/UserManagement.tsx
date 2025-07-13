@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
+import AddUserModal from '../components/AddUserModal';
 import { Search, Plus, Edit, Trash2, Shield, User, GraduationCap } from 'lucide-react';
 
 const UserManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('all');
+  const [showAddModal, setShowAddModal] = useState(false);
 
-  const users = [
+  const [users, setUsers] = useState([
     {
       id: '1',
       name: 'Dr. Sarah Wilson',
@@ -56,7 +58,12 @@ const UserManagement: React.FC = () => {
       assignedStudents: [],
       department: 'Occupational Therapy'
     }
-  ];
+  ]);
+
+  const handleUserAdded = (newUser: any) => {
+    setUsers(prev => [newUser, ...prev]);
+    setShowAddModal(false);
+  };
 
   const getRoleIcon = (role: string) => {
     switch (role) {
@@ -95,7 +102,10 @@ const UserManagement: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
-        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2">
+        <button 
+          onClick={() => setShowAddModal(true)}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+        >
           <Plus className="h-4 w-4" />
           <span>Add User</span>
         </button>
@@ -234,6 +244,13 @@ const UserManagement: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* Add User Modal */}
+      <AddUserModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onUserAdded={handleUserAdded}
+      />
     </div>
   );
 };
